@@ -1,0 +1,21 @@
+{
+  "name": "invoice-app-web",
+  "version": "1.0.0",
+  "description": "Invoice Management Web Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "@supabase/supabase-js": "^2.43.4",
+    "puppeteer": "^22.10.0",
+    "ejs": "^3.1.10"
+  },
+  "author": "",
+  "license": "ISC"
+}
