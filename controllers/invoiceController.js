@@ -26,7 +26,7 @@ const createInvoiceWithRetry = async (invoiceData, userId, profile, client, retr
       }
 
       const date = new Date();
-      const year = date.getFullYear().toString().slice(-2);
+      const year = date.getFullYear().toString();
       const invoiceNumber = `${profile.short_form || 'INV'}/${client.short_form || 'CLIENT'}/${year}/${String(serialNumber).padStart(3, '0')}`;
 
       // 2. Attempt to save the invoice

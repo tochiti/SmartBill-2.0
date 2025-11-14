@@ -251,11 +251,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(downloadLink){
                     downloadLink.href = `/api/invoices/${newInvoice.id}/pdf`;
                     // Assuming you have a Bootstrap modal with id="invoice-success-modal"
-                     const successModal = new bootstrap.Modal(document.getElementById('invoice-success-modal'));
-                    successModal.show();
+                    if (typeof bootstrap !== 'undefined') {
+                        const successModal = new bootstrap.Modal(document.getElementById('invoice-success-modal'));
+                        successModal.show();
+                    }
                 }
                 invoiceForm.reset();
-                invoiceItemsTableBody.innerHTML = '';
+                if(invoiceItemsTableBody) {
+                    invoiceItemsTableBody.innerHTML = '';
+                }
                 calculateTotals();
 
             } catch (error) {
@@ -264,6 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Initial calculation
-        calculateTotals();
+        if(invoiceItemsTableBody) {
+            calculateTotals();
+        }
     }
 });
