@@ -1,6 +1,4 @@
 const supabase = require('../config/supabase');
-const fs = require('fs');
-const path = require('path');
 
 const createClient = async (req, res) => {
   const clientData = req.body;
@@ -15,14 +13,6 @@ const createClient = async (req, res) => {
     if (error) {
       throw error;
     }
-
-    // Create folder structure
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const clientFolderPath = path.join(__dirname, '..', 'uploads', userId, clientData.name, String(year), month);
-
-    fs.mkdirSync(clientFolderPath, { recursive: true });
 
     res.status(201).json(data);
   } catch (error) {
