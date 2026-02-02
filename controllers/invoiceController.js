@@ -1,12 +1,13 @@
 const supabase = require('../config/supabase');
 const pdfService = require('../services/pdfService');
-const fs = require('fs');
-const path = require('path');
 
 // Helper function to handle invoice creation with retries for race conditions
 const createInvoiceWithRetry = async (invoiceData, userId, profile, client, retries = 5) => {
   for (let i = 0; i < retries; i++) {
     try {
+      const date = new Date();
+      const currentYear = date.getFullYear().toString();
+
       // 1. Generate invoice number
       const { data: lastInvoice, error: lastInvoiceError } = await supabase
         .from('invoices')
@@ -19,15 +20,20 @@ const createInvoiceWithRetry = async (invoiceData, userId, profile, client, retr
 
       let serialNumber = 1;
       if (lastInvoice && lastInvoice.length > 0 && lastInvoice[0].invoice_number) {
-        const lastSerial = parseInt(lastInvoice[0].invoice_number.split('/').pop(), 10);
-        if (!isNaN(lastSerial)) {
-            serialNumber = lastSerial + 1;
+        const parts = lastInvoice[0].invoice_number.split('/');
+        // Expected format: PROFILE_SHORT/CLIENT_SHORT/YEAR/SERIAL
+        if (parts.length >= 4) {
+            const lastYear = parts[2];
+            const lastSerial = parseInt(parts[3], 10);
+
+            if (lastYear === currentYear && !isNaN(lastSerial)) {
+                serialNumber = lastSerial + 1;
+            }
+            // If year changed, serialNumber remains 1
         }
       }
 
-      const date = new Date();
-      const year = date.getFullYear().toString();
-      const invoiceNumber = `${profile.short_form || 'INV'}/${client.short_form || 'CLIENT'}/${year}/${String(serialNumber).padStart(3, '0')}`;
+      const invoiceNumber = `${profile.short_form || 'INV'}/${client.short_form || 'CLIENT'}/${currentYear}/${String(serialNumber).padStart(3, '0')}`;
 
       // 2. Attempt to save the invoice
       const { data: newInvoice, error: newInvoiceError } = await supabase
@@ -88,17 +94,7 @@ const createInvoice = async (req, res) => {
     // Call the retry logic
     const newInvoice = await createInvoiceWithRetry(invoiceData, userId, profile, client);
 
-    // Generate PDF
-    const pdfBuffer = await pdfService.generate(profile, client, newInvoice);
-
-    // Save PDF to file system
-    const date = new Date(newInvoice.created_at);
-    const year = date.getFullYear().toString();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const filePath = path.join(__dirname, '..', 'uploads', userId, client.name, year, month, `${newInvoice.invoice_number}.pdf`);
-
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, pdfBuffer);
+    // No longer generating PDF here. It will be generated on demand.
 
     res.status(201).json(newInvoice);
   } catch (error) {
@@ -112,9 +108,10 @@ const getInvoicePDF = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // Fetch invoice with full client details
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*, clients(name)')
+      .select('*, clients(*)')
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -123,19 +120,24 @@ const getInvoicePDF = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found or you do not have permission to view it.' });
     }
 
-    const date = new Date(invoice.created_at);
-    const year = date.getFullYear().toString();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    // Fetch profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-    const filePath = path.join(__dirname, '..', 'uploads', userId, invoice.clients.name, year, month, `${invoice.invoice_number}.pdf`);
-
-    if (fs.existsSync(filePath)) {
-      res.setHeader('Content-Disposition', `inline; filename="${invoice.invoice_number}.pdf"`);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.sendFile(filePath);
-    } else {
-      res.status(404).json({ message: 'PDF file not found for this invoice.' });
+    if (profileError) {
+        throw profileError;
     }
+
+    // Generate PDF
+    const pdfBuffer = await pdfService.generate(profile, invoice.clients, invoice);
+
+    res.setHeader('Content-Disposition', `inline; filename="${invoice.invoice_number}.pdf"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(pdfBuffer);
+
   } catch (error) {
     console.error('Failed to get invoice PDF:', error);
     res.status(500).json({ message: error.message });
