@@ -196,11 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
             addInvoiceItemBtn.addEventListener('click', () => {
                 const newRow = document.createElement('tr');
                 newRow.innerHTML = `
-                    <td><input type="text" class="form-control" name="description" placeholder="Item description"></td>
-                    <td><input type="number" class="form-control" name="quantity" value="1"></td>
-                    <td><input type="number" class="form-control" name="rate" value="0.00"></td>
-                    <td class="item-total">0.00</td>
-                    <td><button type="button" class="btn btn-danger btn-sm remove-item-btn">Remove</button></td>
+                    <td class="px-3 py-2"><input type="text" class="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="description" placeholder="Item description"></td>
+                    <td class="px-3 py-2"><input type="number" class="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="quantity" value="1"></td>
+                    <td class="px-3 py-2"><input type="number" class="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="rate" value="0.00"></td>
+                    <td class="px-3 py-2 item-total text-right">0.00</td>
+                    <td class="px-3 py-2"><button type="button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs remove-item-btn">Remove</button></td>
                 `;
                 invoiceItemsTableBody.appendChild(newRow);
             });
@@ -250,10 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const downloadLink = document.getElementById('invoice-download-link');
                 if(downloadLink){
                     downloadLink.href = `/api/invoices/${newInvoice.id}/pdf`;
-                    // Assuming you have a Bootstrap modal with id="invoice-success-modal"
-                    if (typeof bootstrap !== 'undefined') {
-                        const successModal = new bootstrap.Modal(document.getElementById('invoice-success-modal'));
-                        successModal.show();
+                    // Show Tailwind modal
+                    const successModal = document.getElementById('invoice-success-modal');
+                    if (successModal) {
+                        successModal.classList.remove('hidden');
                     }
                 }
                 invoiceForm.reset();
@@ -271,5 +271,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(invoiceItemsTableBody) {
             calculateTotals();
         }
+    }
+
+    // Modal Close Logic
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const successModal = document.getElementById('invoice-success-modal');
+
+    if (closeModalBtn && successModal) {
+        closeModalBtn.addEventListener('click', () => {
+            successModal.classList.add('hidden');
+        });
     }
 });
