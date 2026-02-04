@@ -53,6 +53,9 @@ const createInvoiceWithRetry = async (invoiceData, userId, profile, client, retr
       if (i === retries - 1) { // Last attempt failed
         throw error;
       }
+      // Add random jitter between 100ms and 500ms
+      const jitter = Math.floor(Math.random() * 400) + 100;
+      await new Promise(resolve => setTimeout(resolve, jitter));
     }
   }
   // If the loop completes without success
@@ -97,8 +100,8 @@ const createInvoice = async (req, res) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const filePath = path.join(__dirname, '..', 'uploads', userId, client.name, year, month, `${newInvoice.invoice_number}.pdf`);
 
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, pdfBuffer);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, pdfBuffer);
 
     res.status(201).json(newInvoice);
   } catch (error) {
@@ -129,11 +132,12 @@ const getInvoicePDF = async (req, res) => {
 
     const filePath = path.join(__dirname, '..', 'uploads', userId, invoice.clients.name, year, month, `${invoice.invoice_number}.pdf`);
 
-    if (fs.existsSync(filePath)) {
+    try {
+      await fs.promises.access(filePath);
       res.setHeader('Content-Disposition', `inline; filename="${invoice.invoice_number}.pdf"`);
       res.setHeader('Content-Type', 'application/pdf');
       res.sendFile(filePath);
-    } else {
+    } catch (error) {
       res.status(404).json({ message: 'PDF file not found for this invoice.' });
     }
   } catch (error) {
