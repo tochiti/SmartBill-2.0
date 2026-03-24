@@ -22,7 +22,7 @@ const createClient = async (req, res) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const clientFolderPath = path.join(__dirname, '..', 'uploads', userId, clientData.name, String(year), month);
 
-    fs.mkdirSync(clientFolderPath, { recursive: true });
+    await fs.promises.mkdir(clientFolderPath, { recursive: true });
 
     res.status(201).json(data);
   } catch (error) {
