@@ -97,8 +97,8 @@ const createInvoice = async (req, res) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const filePath = path.join(__dirname, '..', 'uploads', userId, client.name, year, month, `${newInvoice.invoice_number}.pdf`);
 
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, pdfBuffer);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, pdfBuffer);
 
     res.status(201).json(newInvoice);
   } catch (error) {
@@ -129,7 +129,8 @@ const getInvoicePDF = async (req, res) => {
 
     const filePath = path.join(__dirname, '..', 'uploads', userId, invoice.clients.name, year, month, `${invoice.invoice_number}.pdf`);
 
-    if (fs.existsSync(filePath)) {
+    const fileExists = await fs.promises.access(filePath).then(() => true).catch(() => false);
+    if (fileExists) {
       res.setHeader('Content-Disposition', `inline; filename="${invoice.invoice_number}.pdf"`);
       res.setHeader('Content-Type', 'application/pdf');
       res.sendFile(filePath);
